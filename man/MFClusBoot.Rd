@@ -13,7 +13,8 @@
   factor with two levels of treatment, and w is a factor
   indicating the clusters.}
 
-  \item{data}{Data frame}
+  \item{data}{Data frame. See \code{Note} for handling of
+  input data with more than two levels.}
 
   \item{compare}{Text vector stating the factor levels -
   \code{compare[1]} is the control or reference group to
@@ -54,6 +55,15 @@
   percentile method. Highest density intervals are
   estimated by selecting the shortest of all possible
   intervals.
+}
+\note{
+  If input data contains more than two levels of treatment,
+  rows associated with unused treatment levels will be
+  removed. \cr Factor levels for treatments not present in
+  the input data will be ignored. \cr Clusters with missing
+  treatments will be excluded. See
+  \code{\link{mfbootcluster-class}} or use \code{trace.it}
+  to identify excluded clusters.
 }
 \examples{
 \dontrun{

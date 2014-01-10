@@ -8,7 +8,7 @@
 #'    boot.unit = FALSE, b = 100, B = 100, alpha = 0.05, hpd = TRUE, 
 #'    return.boot = FALSE, trace.it = FALSE)
 #' @param formula Formula of the form \code{y ~ x + cluster(w)}, where y is a continuous response, x is a factor with two levels of treatment, and w is a factor indicating the clusters.
-#' @param data Data frame
+#' @param data Data frame. See \code{Note} for handling of input data with more than two levels.
 #' @param compare Text vector stating the factor levels - \code{compare[1]} is the control or reference group to which \code{compare[2]} is compared
 #' @param boot.cluster Resample the clusters? Default TRUE
 #' @param boot.unit Resample the units within cluster? Default FALSE
@@ -19,6 +19,10 @@
 #' @param return.boot Save the bootstrap sample of the MF statistic? Default FALSE
 #' @param trace.it Verbose tracking of the cycles? Default FALSE
 #' @return a \code{\link{mfbootcluster-class}} data object
+#' @note
+#' If input data contains more than two levels of treatment, rows associated with unused treatment levels will be removed. \cr
+#' Factor levels for treatments not present in the input data will be ignored. \cr
+#' Clusters with missing treatments will be excluded. See \code{\link{mfbootcluster-class}} or use \code{trace.it} to identify excluded clusters.
 #' @export
 #' @references Siev D. (2005). An estimator of intervention effect on disease severity. \emph{Journal of Modern Applied Statistical Methods.} \bold{4:500--508}\cr \cr
 #' Efron B, Tibshirani RJ. \emph{An Introduction to the Bootstrap.} Chapman and Hall, New York, 1993.
@@ -75,50 +79,33 @@ MFClusBoot <- function(formula, data, compare = c("con", "vac"), boot.cluster = 
     # revised 6/15/07 by DS - moved lines 59-60 from original location to correctly identify clusters that are eliminated
     # R version 5/6/10 - added quotes in switch()
     # revised 5/25/10 - added empirical HPD interval
+	# revised 8/27/13 - remove group levels if no observations from that level are present in original data 
+	# revised 9/03/13 - subset initial data by comparison group levels
+	# revised 9/03/13 - move data reshaping shared by MFClusBoot and MFClus to external function 
+    # revised 1/10/14 - move empirical HPD interval to external function shared by MFClusBoot and 
 
-    emp.hpd <- function (X, alpha){
-    # empirical hpd by shortest length interval
-        X <- sort(X)
-        # len <- round(length(X)*alpha*.5)
-        probs <- cbind(low = seq(0, .05, .001), high = seq(0.95, 1, .001))
-        int.len <- quantile(X, prob = probs[, 'high']) - quantile(X, prob = probs[, 'low'])
-        shortest <- min(int.len)
-        first <- which(int.len == shortest)[1]
-        hpd <- quantile(X, prob = probs[first,])
-        return(hpd)
-    }
+   
 
-    #assign('cluster', function(x){return(x)}, envir = .GlobalEnv)
-	cluster <- function(x){return(x)}
 	
     rng <- 'Mersenne-Twister'
     RNGkind(rng)
     seed <- .Random.seed
-
-    this.call <- match.call()
-
-    Terms <- terms(formula, specials = 'cluster', data = data)
-	environment(Terms) <- environment()
-    A <- model.frame(formula = Terms, data = data)
-    dat <- A[, 1]
-    group <- A[, 2]
-## remove any group levels that aren't present; don't want to evaluate for empty groups - mcv 08/27/13
-	group <- factor(group)
-
-    clusters <- A[, 3]
-
-    strat <- unique(as.character(clusters))
-
+	
+	dat <- NULL
+	group <- NULL
+	clusters <- NULL
+	strat <- NULL
+	reshapeCluster(data = data, formula = formula, compare = compare, envir = environment())
     id <- compare
     
     keep <- apply(table(group, clusters), 2, function(x){all(x > 0)})[strat]
-
     if(sum(!keep) > 0){
         if(trace.it){
 			cat('Clusters eliminated because of missing treatments:', strat[!keep], '\n')
 		}
 	}
     excluded.clusters <- strat[!keep]
+
     strat <- strat[keep]
 
     n.strat <- length(strat)
@@ -235,14 +222,7 @@ MFClusBoot <- function(formula, data, compare = c("con", "vac"), boot.cluster = 
         hpdmf <- emp.hpd(MF, alpha = alpha)
         stat <- rbind(stat, 'Highest Density' = c(mf.obs, stat[1, 'median'], hpdmf))
     }
-    # out <- list(stat = stat, nboot = nboot, alpha = alpha, what = the.text, 
-		# excludedClusters = excluded.clusters, seed = seed, call = this.call, 
-		# compare = compare, rng = rng)
-    # if(return.boot){
-        # out <- list(out, sample = MF)
-	# }
-    # class(out) <- 'mfbootcluster'
-    # return(out)
+
 	if(return.boot){
 		sample <- MF
 	} else {
@@ -250,6 +230,6 @@ MFClusBoot <- function(formula, data, compare = c("con", "vac"), boot.cluster = 
 	}
 
 	return(mfbootcluster$new(stat = stat, nboot = nboot, alpha = alpha, what = the.text, 
-		excludedClusters = excluded.clusters, seed = seed, call = this.call, 
+		excludedClusters = excluded.clusters, seed = seed, call = match.call(), 
 		compare = compare, rng = rng, sample = sample))
 }

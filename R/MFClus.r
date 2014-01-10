@@ -3,12 +3,16 @@
 #' Averages the U statistic over the clusters and computes MF from it. Clusters are excluded if they do not include both treatments.
 #' 
 #' @title Clustered mitigated fraction
-#' @usage MFClus(formula, data, compare = c("con", "vac"), trace.it = FALSE)
+# @usage MFClus(formula, data, compare = c("con", "vac"), trace.it = FALSE)
 #' @param formula Formula of the form \code{y ~ x + cluster(w)}, where y is a continuous response, x is a factor with two levels of treatment, and w is a factor indicating the clusters.
-#' @param data Data frame
+#' @param data Data frame.  See \code{Note} for handling of input data with more than two levels.
 #' @param compare Text vector stating the factor levels - \code{compare[1]} is the control or reference group to which \code{compare[2]} is compared
 #' @param trace.it Verbose tracking of the cycles? Default FALSE.
 #' @return a \code{\link{mfcluster-class}} data object
+#' @note
+#' If input data contains more than two levels of treatment, rows associated with unused treatment levels will be removed. \cr
+#' Factor levels for treatments not present in the input data will be ignored. \cr
+#' Clusters with missing treatments will be excluded. See \code{\link{mfbootcluster-class}} or use \code{trace.it} to identify excluded clusters.
 #' @export
 #' @references Siev D. (2005). An estimator of intervention effect on disease severity. \emph{Journal of Modern Applied Statistical Methods.} \bold{4:500--508}
 #' @author David Siev \email{david.siev@@aphis.usda.gov}
@@ -60,23 +64,15 @@ MFClus <- function(formula, data, compare = c("con", "vac"), trace.it = FALSE){
     # within-cluster ranking only 
     # 3/19/01 initial coding
     # revised 10/3/06 to eliminate clusters without both treatments represented
-    
-   # assign('cluster', function(x) {return(x)}, envir = parent.env(environment()))
-	cluster <- function(x) {return(x)}
-    this.call <- match.call()
-    Terms <- terms(formula, specials = 'cluster', data = data)
-	environment(Terms) <- environment()
-
-    A <- model.frame(formula = Terms, data = data)
-
-    dat <- A[, 1]
-    group <- A[, 2]
-## remove group levels that aren't present; don't want to eval for empty groups - mcv 08/27/13
-	group <- factor(group)
-    clusters <- A[, 3]
-    
-    strat <- unique(as.character(clusters))
-    id <- compare
+	# revised 8/27/13 - remove group levels if no observations from that level are present in original data 
+	# revised 9/03/13 - subset initial data by comparison group levels
+	# revised 9/03/13 - move data reshaping shared by MFClusBoot and MFClus to external function 
+	dat <- NULL
+	group <- NULL
+	clusters <- NULL
+	strat <- NULL
+	reshapeCluster(data = data, formula = formula, compare = compare, envir = environment()) 
+	id <- compare
     out <- matrix(NA, length(strat), 6, dimnames = list(strat, c("w", "u", "r", 
 		"n1", "n2", "mf")))
     excluded.clusters <- NULL
@@ -107,10 +103,6 @@ MFClus <- function(formula, data, compare = c("con", "vac"), trace.it = FALSE){
     All["mf"] <- MF
     All <- data.frame(t(All))
     dimnames(All)[[1]] <- 'All'
-    # result <- list(All = All, byCluster = out, excludedClusters = excluded.clusters,
-		# call = this.call, compare = compare)
-    # class(result) <- 'mfcluster'
-    # return(result)
 	return(mfcluster$new(All = All, byCluster = out, excludedClusters = excluded.clusters,
-		call = this.call, compare = compare))
+		call = match.call(), compare = compare))
 }

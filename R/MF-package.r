@@ -6,8 +6,8 @@
 #' \tabular{ll}{
 #' Package: \tab MF-package\cr
 #' Type: \tab Package\cr
-#' Version: \tab 4.3\cr
-#' Date: \tab 2013-08-29\cr
+#' Version: \tab 4.3.2\cr
+#' Date: \tab 2014-01-10\cr
 #' License: \tab MIT \cr
 #' LazyLoad: \tab yes\cr
 #' }

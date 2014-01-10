@@ -2,8 +2,8 @@
 \alias{MFClus}
 \title{Clustered mitigated fraction}
 \usage{
-  MFClus(formula, data, compare = c("con", "vac"), trace.it
-    = FALSE)
+  MFClus(formula, data, compare = c("con", "vac"),
+    trace.it = FALSE)
 }
 \arguments{
   \item{formula}{Formula of the form \code{y ~ x +
@@ -11,7 +11,8 @@
   factor with two levels of treatment, and w is a factor
   indicating the clusters.}
 
-  \item{data}{Data frame}
+  \item{data}{Data frame.  See \code{Note} for handling of
+  input data with more than two levels.}
 
   \item{compare}{Text vector stating the factor levels -
   \code{compare[1]} is the control or reference group to
@@ -31,6 +32,15 @@
   Averages the U statistic over the clusters and computes
   MF from it. Clusters are excluded if they do not include
   both treatments.
+}
+\note{
+  If input data contains more than two levels of treatment,
+  rows associated with unused treatment levels will be
+  removed. \cr Factor levels for treatments not present in
+  the input data will be ignored. \cr Clusters with missing
+  treatments will be excluded. See
+  \code{\link{mfbootcluster-class}} or use \code{trace.it}
+  to identify excluded clusters.
 }
 \examples{
 \dontrun{

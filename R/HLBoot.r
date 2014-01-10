@@ -64,18 +64,6 @@ HLBoot <- function(formula, data, compare = c("con", "vac"), b = 100, B = 100,
 	seed = NULL){
     # takes b bootstrap samples B times, so nboot = B * b
 
-    emp.hpd <- function (X, alpha){
-    # empirical hpd by shortest length interval
-        X <- sort(X)
-        # len <- round(length(X)*alpha*.5)
-        probs <- cbind(low = seq(0, .05, .001), high = seq(0.95, 1, .001))
-        int.len <- quantile(X, prob = probs[, 'high']) - quantile(X, prob = probs[, 'low'])
-        shortest <- min(int.len)
-        first <- which(int.len == shortest)[1]
-        hpd <- quantile(X,prob = probs[first,], type = 7)
-            # see documentation for quantile() for type
-        return(hpd)
-    }
 
     # Wilcoxon rank sum statistic
     w <- function(xy, n.x){
